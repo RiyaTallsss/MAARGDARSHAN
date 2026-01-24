@@ -1,0 +1,68 @@
+# Core geospatial libraries
+GDAL>=3.4.0
+rasterio>=1.3.0
+geopandas>=0.12.0
+shapely>=2.0.0
+pyproj>=3.4.0
+fiona>=1.8.0
+
+# OpenStreetMap processing
+OSMnx>=1.6.0
+pyosmium>=3.6.0
+networkx>=3.0
+
+# Data processing and analysis
+pandas>=1.5.0
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-image>=0.20.0
+
+# AWS integration
+boto3>=1.26.0
+botocore>=1.29.0
+
+# HTTP clients and API integration
+requests>=2.28.0
+aiohttp>=3.8.0
+httpx>=0.24.0
+
+# Web framework
+fastapi>=0.95.0
+uvicorn>=0.20.0
+pydantic>=1.10.0
+
+# Testing framework
+pytest>=7.2.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+hypothesis>=6.70.0
+
+# Development tools
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+pre-commit>=3.0.0
+
+# Caching and performance
+redis>=4.5.0
+diskcache>=5.6.0
+
+# Logging and monitoring
+structlog>=23.0.0
+prometheus-client>=0.16.0
+
+# Image processing (for satellite imagery)
+Pillow>=9.4.0
+opencv-python>=4.7.0
+
+# Mathematical operations
+sympy>=1.11.0
+
+# Configuration management
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# Geospatial visualization (optional)
+folium>=0.14.0
+matplotlib>=3.6.0
+contextily>=1.3.0

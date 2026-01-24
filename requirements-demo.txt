@@ -1,0 +1,39 @@
+# Demo requirements - lightweight version for testing
+# Install these first to get the system running
+
+# Web framework
+fastapi>=0.95.0
+uvicorn>=0.20.0
+pydantic>=1.10.0
+
+# Data processing
+pandas>=1.5.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# HTTP clients
+requests>=2.28.0
+aiohttp>=3.8.0
+
+# Testing
+pytest>=7.2.0
+pytest-asyncio>=0.21.0
+hypothesis>=6.70.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Logging
+structlog>=23.0.0
+
+# Caching
+diskcache>=5.6.0
+
+# Graph processing (lightweight alternative to OSMnx)
+networkx>=3.0
+
+# AWS (optional for demo)
+# boto3>=1.26.0
+
+# Image processing (optional)
+# Pillow>=9.4.0
