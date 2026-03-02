@@ -133,7 +133,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Implement calculate_route_metrics() for distance, cost, difficulty
     - _Requirements: 2.1, 2.2, 2.3_
 
-  - [~] 7.2 Write property tests for enhanced route generation
+  - [ ] 7.2 Write property tests for enhanced route generation
     - **Property 2: Multi-Alternative Route Generation**
     - **Property 3: Route Completeness**
     - **Validates: Requirements 2.1, 2.2, 2.3**
@@ -144,7 +144,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Create budget and timeline constraint filtering
     - _Requirements: 2.2, 5.5_
 
-  - [~] 7.4 Write unit tests for enhanced route algorithms
+  - [ ] 7.4 Write unit tests for enhanced route algorithms
     - Test A* pathfinding with known optimal paths
     - Test multiple route generation with different parameters
     - Test constraint filtering functionality
@@ -159,7 +159,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Add real-time risk updates based on current weather conditions
     - _Requirements: 3.1, 3.3, 3.2_
 
-  - [~] 8.2 Write property tests for enhanced risk assessment
+  - [ ] 8.2 Write property tests for enhanced risk assessment
     - **Property 5: Terrain Risk Calculation with API data**
     - **Property 7: Flood Risk Scoring with real-time updates**
     - **Property 6: Seasonal Risk Assessment with current weather**
@@ -172,7 +172,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Integrate satellite imagery APIs for flood monitoring
     - _Requirements: 2.5, 6.5_
 
-  - [~] 8.4 Write property test for enhanced flood intersection handling
+  - [ ] 8.4 Write property test for enhanced flood intersection handling
     - **Property 4: Flood Zone Intersection Handling with real-time data**
     - **Validates: Requirements 2.5**
 
@@ -185,7 +185,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Integrate real-time data context (API freshness, data sources) into AI explanations
     - _Requirements: 2.4, 6.1, 6.2_
 
-  - [~] 9.2 Write property tests for AI integration
+  - [ ] 9.2 Write property tests for AI integration
     - **Property 14: Comprehensive Route Explanation**
     - **Property 12: Trade-off Analysis (AI component)**
     - **Validates: Requirements 6.1, 6.2, 5.4**
@@ -197,13 +197,13 @@ The implementation follows a layered approach: data processing foundation, core 
     - Include data source transparency in AI explanations (API vs local data)
     - _Requirements: 6.3, 6.4, 6.5_
 
-  - [~] 9.4 Write property tests for AI explanations
+  - [ ] 9.4 Write property tests for AI explanations
     - **Property 15: Seasonal Risk Recommendations**
     - **Property 16: Alternative Route Rationale**
     - **Property 17: High-Risk Engineering Solutions**
     - **Validates: Requirements 6.3, 6.4, 6.5**
 
-- [~] 10. Checkpoint - Ensure core algorithms and AI integration work with APIs
+- [ ] 10. Checkpoint - Ensure core algorithms and AI integration work with APIs
   - Verify AI explanations include data source information and freshness indicators
   - Test system performance with various API response times and failures
   - Ensure all tests pass, ask the user if questions arise.
@@ -225,7 +225,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Add export options for different data freshness levels
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 10.5_
 
-  - [~] 11.3 Write property tests for enhanced export functionality
+  - [ ] 11.3 Write property tests for enhanced export functionality
     - **Property 18: Multi-Format Export with data source tracking**
     - **Property 19: Comprehensive Report Generation with API status**
     - **Property 20: Comparative Export with freshness indicators**
@@ -233,7 +233,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 10.5**
 
 - [ ] 12. Implement web interface and interactive mapping with data source indicators
-  - [~] 12.1 Create React frontend with Leaflet mapping and API status display
+  - [ ] 12.1 Create React frontend with Leaflet mapping and API status display
     - Set up React application with TypeScript
     - Integrate Leaflet for interactive mapping with satellite imagery
     - Implement route visualization with distinct colors
@@ -242,7 +242,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Add real-time data freshness indicators in the UI
     - _Requirements: 4.1, 4.2, 4.3, 10.5_
 
-  - [~] 12.2 Add interactive features and enhanced user controls
+  - [ ] 12.2 Add interactive features and enhanced user controls
     - Implement click handlers for route segment information display
     - Add zoom and pan controls with route visibility maintenance
     - Create route comparison interface with side-by-side display
@@ -251,7 +251,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Create refresh controls for updating API data
     - _Requirements: 4.4, 4.5, 5.1, 5.5, 10.5_
 
-  - [~] 12.3 Write property tests for enhanced visualization
+  - [ ] 12.3 Write property tests for enhanced visualization
     - **Property 9: Route Visualization Overlay with data source indicators**
     - **Property 10: Interactive Route Information with freshness data**
     - **Property 11: Multi-Route Comparison Display with source tracking**
@@ -275,7 +275,7 @@ The implementation follows a layered approach: data processing foundation, core 
     - Add user notifications about data source limitations and API status
     - _Requirements: 9.3, 9.5, 10.2, 10.5_
 
-  - [~] 13.3 Write property tests for enhanced error handling
+  - [ ] 13.3 Write property tests for enhanced error handling
     - **Property 27: Data Corruption Detection including API response validation**
     - **Property 28: Input Validation with API parameter checking**
     - **Property 29: Missing Data Handling including API failures**
@@ -315,13 +315,13 @@ The implementation follows a layered approach: data processing foundation, core 
     - Integrate local weather patterns with real-time API data for better accuracy
     - _Requirements: 10.2, 10.5_
 
-  - [~] 15.2 Write property tests for enhanced regional specialization
+  - [ ] 15.2 Write property tests for enhanced regional specialization
     - **Property 32: Uttarkashi-Specific Analysis with API data integration**
     - **Property 34: High-Altitude Construction Recommendations with real-time weather**
     - **Validates: Requirements 10.2, 10.3, 10.5**
 
 - [ ] 16. Integration testing and system validation with full API integration
-  - [~] 16.1 Create end-to-end integration tests with API scenarios
+  - [ ] 16.1 Create end-to-end integration tests with API scenarios
     - Test complete workflow from API data loading to route export
     - Validate AI explanation quality and consistency with mixed data sources
     - Test multi-user scenarios with shared API resources and rate limits
@@ -329,13 +329,13 @@ The implementation follows a layered approach: data processing foundation, core 
     - Test system behavior under various API failure scenarios
     - _Requirements: All requirements_
 
-  - [~] 16.2 Write comprehensive system property tests
+  - [ ] 16.2 Write comprehensive system property tests
     - **Property 8: Risk Visualization and AI Explanation with data source transparency**
     - **Property 12: Trade-off Analysis including data freshness considerations**
     - Test system-wide properties that span multiple components and data sources
     - **Validates: Requirements 3.4, 3.5, 5.3, 5.4, 10.5**
 
-- [~] 17. Final checkpoint and deployment preparation with API configuration
+- [ ] 17. Final checkpoint and deployment preparation with API configuration
   - Ensure all tests pass with both API and local data scenarios
   - Verify system meets all performance requirements under API constraints
   - Validate AWS Bedrock integration and API limits for all external services

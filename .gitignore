@@ -101,6 +101,11 @@ datasets/
 models/
 checkpoints/
 
+# AWS Lambda deployment artifacts
+lambda-deployment.zip
+lambda-package/
+*.zip
+
 # Backup files
 *.bak
 *.backup
