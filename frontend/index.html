@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAARGDARSHAN - AI-Powered Rural Infrastructure Planning</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .demo-notice {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+            display: inline-block;
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            height: calc(100vh - 100px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a202c;
+        }
+
+        /* Instructions */
+        .instructions {
+            background: #edf2f7;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .instructions strong {
+            color: #667eea;
+        }
+
+        /* Coordinates Display */
+        .coord-display {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .coord-box {
+            flex: 1;
+            background: #f7fafc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .coord-label {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .coord-value {
+            font-size: 0.9rem;
+            color: #2d3748;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Routes List */
+        .routes-list {
+            display: none;
+        }
+
+        .route-card {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .route-card:hover {
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .route-card.selected {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .route-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #2d3748;
+        }
+
+        .route-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-low { background: #c6f6d5; color: #22543d; }
+        .badge-medium { background: #feebc8; color: #7c2d12; }
+        .badge-high { background: #fed7d7; color: #742a2a; }
+
+        .route-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .metric-label {
+            color: #718096;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* AI Explanation */
+        .ai-explanation {
+            display: none;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .ai-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-text {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #4a5568;
+        }
+
+        /* Risk Indicators */
+        .risk-bars {
+            margin-top: 0.75rem;
+        }
+
+        .risk-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .risk-label {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-bottom: 0.25rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .risk-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .risk-fill {
+            height: 100%;
+            transition: width 0.5s;
+        }
+
+        .risk-low { background: #48bb78; }
+        .risk-medium { background: #ed8936; }
+        .risk-high { background: #f56565; }
+
+        /* Map Controls */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 400px;
+            }
+        }
+
+        /* Custom Leaflet Popup */
+        .custom-popup {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .popup-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Construction Details Section */
+        .construction-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .construction-header {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #2d3748;
+            margin-bottom: 0.75rem;
+        }
+
+        .construction-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .construction-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .construction-icon {
+            font-size: 1.2rem;
+        }
+
+        .construction-label {
+            color: #718096;
+            flex: 1;
+        }
+
+        .construction-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* Earthwork Summary */
+        .earthwork-summary {
+            background: #f7fafc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .earthwork-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .earthwork-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .earthwork-row span:first-child {
+            color: #718096;
+        }
+
+        .earthwork-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .earthwork-value.balanced {
+            color: #22543d;
+        }
+
+        .earthwork-value.excess_cut {
+            color: #c05621;
+        }
+
+        .earthwork-value.excess_fill {
+            color: #2c5282;
+        }
+
+        /* Download Section */
+        .download-section {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-top: 0.75rem;
+        }
+
+        .download-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .download-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .download-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .download-btn span {
+            font-size: 1.2rem;
+        }
+
+        .download-hint {
+            font-size: 0.7rem;
+            color: #718096;
+            text-align: center;
+        }
+
+        /* Bridge and Settlement Markers */
+        .bridge-marker, .settlement-marker {
+            transition: transform 0.2s;
+        }
+
+        .bridge-marker:hover, .settlement-marker:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🗺️ MAARGDARSHAN</h1>
+        <p>AI-Powered Rural Infrastructure Planning for Uttarakhand</p>
+        <div class="demo-notice">✅ Using REAL Data: DEM Elevations, Rainfall Patterns, Flood Risk | Other states coming soon</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Map -->
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <!-- Legend -->
+            <div class="map-legend">
+                <div class="legend-title">Route Legend</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span>Shortest Route</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10b981;"></div>
+                    <span>Safest Route</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f59e0b;"></div>
+                    <span>Cost-Effective</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Instructions -->
+            <div class="section">
+                <div class="section-title">📍 How to Use</div>
+                <div class="instructions">
+                    <strong>Step 1:</strong> Click on the map to set <strong>Start Point</strong><br>
+                    <strong>Step 2:</strong> Click again to set <strong>End Point</strong><br>
+                    <strong>Step 3:</strong> Click <strong>Generate Routes</strong><br>
+                    <strong>Step 4:</strong> Compare routes and view AI analysis
+                </div>
+            </div>
+
+            <!-- Coordinates -->
+            <div class="section">
+                <div class="section-title">Selected Points</div>
+                <div class="coord-display">
+                    <div class="coord-box">
+                        <div class="coord-label">Start Point</div>
+                        <div class="coord-value" id="start-coord">Click on map</div>
+                    </div>
+                    <div class="coord-box">
+                        <div class="coord-label">End Point</div>
+                        <div class="coord-value" id="end-coord">Click on map</div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" id="generate-btn" disabled>
+                    Generate Routes with AI
+                </button>
+                <button class="btn btn-secondary" id="clear-btn">
+                    Clear & Start Over
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing terrain and generating routes...</p>
+            </div>
+
+            <!-- Routes -->
+            <div class="routes-list" id="routes-container">
+                <div class="section-title">🛣️ Route Alternatives</div>
+                <div id="routes"></div>
+            </div>
+
+            <!-- AI Explanation -->
+            <div class="ai-explanation" id="ai-explanation">
+                <div class="ai-title">
+                    <span>🤖</span>
+                    <span>AI Analysis</span>
+                </div>
+                <div class="ai-text" id="ai-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main App Script -->
+    <script src="app.js"></script>
+</body>
+</html>
