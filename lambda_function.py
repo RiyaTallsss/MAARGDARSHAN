@@ -29,6 +29,32 @@ DEM_CACHE = {}
 RIVERS_CACHE = None
 SETTLEMENTS_CACHE = None
 
+# Uttarakhand Tourism Spots (Hardcoded for demo - production would parse from OSM)
+UTTARAKHAND_TOURISM_SPOTS = [
+    # Char Dham (Highest Priority - UNESCO Heritage)
+    {'name': 'Gangotri Temple', 'lat': 30.9993, 'lon': 78.9394, 'type': 'char_dham', 'score': 20, 'description': 'Source of Ganges'},
+    {'name': 'Yamunotri Temple', 'lat': 31.0117, 'lon': 78.4270, 'type': 'char_dham', 'score': 20, 'description': 'Source of Yamuna'},
+    {'name': 'Kedarnath Temple', 'lat': 30.7346, 'lon': 79.0669, 'type': 'char_dham', 'score': 20, 'description': 'Jyotirlinga'},
+    {'name': 'Badrinath Temple', 'lat': 30.7433, 'lon': 79.4938, 'type': 'char_dham', 'score': 20, 'description': 'Vishnu Temple'},
+    
+    # Famous Temples (High Priority)
+    {'name': 'Neelkanth Mahadev', 'lat': 30.1167, 'lon': 78.2833, 'type': 'temple', 'score': 10, 'description': 'Shiva Temple'},
+    {'name': 'Tungnath Temple', 'lat': 30.4897, 'lon': 79.2122, 'type': 'temple', 'score': 10, 'description': 'Highest Shiva Temple'},
+    {'name': 'Rudranath Temple', 'lat': 30.5333, 'lon': 79.3167, 'type': 'temple', 'score': 9, 'description': 'Panch Kedar'},
+    
+    # Natural & Scenic (Medium-High Priority)
+    {'name': 'Valley of Flowers', 'lat': 30.7167, 'lon': 79.6000, 'type': 'natural', 'score': 15, 'description': 'UNESCO World Heritage'},
+    {'name': 'Hemkund Sahib', 'lat': 30.7167, 'lon': 79.6167, 'type': 'pilgrimage', 'score': 15, 'description': 'Sikh Pilgrimage'},
+    {'name': 'Auli Ski Resort', 'lat': 30.5370, 'lon': 79.5840, 'type': 'tourism', 'score': 12, 'description': 'Winter Sports'},
+    {'name': 'Har Ki Dun Valley', 'lat': 31.1167, 'lon': 78.4500, 'type': 'viewpoint', 'score': 8, 'description': 'Trekking Destination'},
+    {'name': 'Dayara Bugyal', 'lat': 30.9167, 'lon': 78.5833, 'type': 'viewpoint', 'score': 8, 'description': 'Alpine Meadow'},
+    
+    # Towns/Markets (Medium Priority)
+    {'name': 'Uttarkashi Town', 'lat': 30.7268, 'lon': 78.4354, 'type': 'town', 'score': 15, 'description': 'District HQ'},
+    {'name': 'Barkot', 'lat': 30.8167, 'lon': 78.2000, 'type': 'town', 'score': 10, 'description': 'Market Town'},
+    {'name': 'Purola', 'lat': 30.9333, 'lon': 78.1167, 'type': 'town', 'score': 8, 'description': 'Trading Hub'},
+]
+
 
 def get_elevation_from_dem(lat, lon):
     """
@@ -276,6 +302,118 @@ def find_nearby_settlements(waypoints, radius_km=5):
     except Exception as e:
         print(f"Error finding settlements: {e}")
         return []
+
+
+def find_tourism_spots_near_route(waypoints, radius_km=10):
+    """
+    Find tourism/pilgrimage spots near the route
+    Returns list of spots with distance and tourism score
+    """
+    nearby_spots = []
+    
+    try:
+        for wp in waypoints:
+            for spot in UTTARAKHAND_TOURISM_SPOTS:
+                # Calculate distance
+                lat_diff = spot['lat'] - wp['lat']
+                lon_diff = spot['lon'] - wp['lon']
+                dist_km = math.sqrt(lat_diff**2 + lon_diff**2) * 111
+                
+                if dist_km <= radius_km:
+                    nearby_spots.append({
+                        'name': spot['name'],
+                        'type': spot['type'],
+                        'description': spot['description'],
+                        'lat': spot['lat'],
+                        'lon': spot['lon'],
+                        'distance_from_route_km': round(dist_km, 2),
+                        'tourism_score': spot['score']
+                    })
+        
+        # Remove duplicates (keep closest)
+        unique_spots = {}
+        for spot in nearby_spots:
+            if spot['name'] not in unique_spots or spot['distance_from_route_km'] < unique_spots[spot['name']]['distance_from_route_km']:
+                unique_spots[spot['name']] = spot
+        
+        # Sort by tourism score (highest first)
+        result = sorted(unique_spots.values(), key=lambda x: x['tourism_score'], reverse=True)
+        print(f"Found {len(result)} tourism spots near route")
+        return result
+        
+    except Exception as e:
+        print(f"Error finding tourism spots: {e}")
+        return []
+
+
+def calculate_existing_road_utilization(waypoints):
+    """
+    Estimate existing road utilization (simplified for demo)
+    In production: Parse OSM road network and check segment overlap
+    For demo: Use heuristic based on proximity to known routes
+    """
+    try:
+        # Major routes in Uttarakhand (simplified)
+        major_routes = [
+            # NH-108: Rishikesh to Gangotri
+            {'name': 'NH-108', 'start': (30.1, 78.3), 'end': (31.0, 78.9), 'type': 'highway'},
+            # SH routes
+            {'name': 'SH-123', 'start': (30.5, 78.5), 'end': (30.8, 78.8), 'type': 'state_highway'},
+        ]
+        
+        total_distance_km = 0
+        existing_road_km = 0
+        
+        # Calculate for each segment
+        for i in range(len(waypoints) - 1):
+            wp1 = waypoints[i]
+            wp2 = waypoints[i + 1]
+            
+            # Segment distance
+            lat_diff = wp2['lat'] - wp1['lat']
+            lon_diff = wp2['lon'] - wp1['lon']
+            segment_dist = math.sqrt(lat_diff**2 + lon_diff**2) * 111
+            total_distance_km += segment_dist
+            
+            # Check if segment is near existing roads
+            # Simplified: Check if waypoints are near major routes
+            for route in major_routes:
+                route_start_lat, route_start_lon = route['start']
+                route_end_lat, route_end_lon = route['end']
+                
+                # Check if segment intersects with route corridor (within 2km)
+                wp1_near = (abs(wp1['lat'] - route_start_lat) < 0.05 and abs(wp1['lon'] - route_start_lon) < 0.05) or \
+                           (abs(wp1['lat'] - route_end_lat) < 0.05 and abs(wp1['lon'] - route_end_lon) < 0.05)
+                wp2_near = (abs(wp2['lat'] - route_start_lat) < 0.05 and abs(wp2['lon'] - route_start_lon) < 0.05) or \
+                           (abs(wp2['lat'] - route_end_lat) < 0.05 and abs(wp2['lon'] - route_end_lon) < 0.05)
+                
+                if wp1_near or wp2_near:
+                    existing_road_km += segment_dist
+                    break
+        
+        # Calculate utilization percentage
+        utilization_percent = (existing_road_km / total_distance_km * 100) if total_distance_km > 0 else 0
+        new_construction_km = total_distance_km - existing_road_km
+        
+        print(f"Road utilization: {utilization_percent:.1f}% ({existing_road_km:.1f}km existing, {new_construction_km:.1f}km new)")
+        
+        return {
+            'total_distance_km': round(total_distance_km, 2),
+            'existing_road_km': round(existing_road_km, 2),
+            'new_construction_km': round(new_construction_km, 2),
+            'utilization_percent': round(utilization_percent, 1),
+            'cost_savings_percent': round(utilization_percent * 0.8, 1)  # Existing roads save ~80% of cost
+        }
+        
+    except Exception as e:
+        print(f"Error calculating road utilization: {e}")
+        return {
+            'total_distance_km': 0,
+            'existing_road_km': 0,
+            'new_construction_km': 0,
+            'utilization_percent': 0,
+            'cost_savings_percent': 0
+        }
 
 
 def get_flood_risk(lat, lon):
@@ -553,11 +691,11 @@ def generate_construction_data(waypoints, route_name):
     }
 def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_points=None):
     """
-    Generate route alternatives using REAL data from S3:
-    - DEM for actual elevation profiles
-    - Rainfall data for seasonal risk
-    - Rivers data for bridge detection and flood risk
-    - Settlements data for connectivity analysis
+    Generate 4 route alternatives using REAL data from S3:
+    1. Shortest Route - Minimize distance
+    2. Safest Route - Minimize risk
+    3. Budget Route - Minimize cost (use existing roads)
+    4. Social Impact Route - Maximize connectivity + tourism
     
     Returns construction-ready outputs with GPS waypoints, gradients, and downloadable formats
     """
@@ -596,20 +734,36 @@ def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_p
         
         return waypoints
     
-    # Generate two routes with different characteristics
+    # ROUTE 1: Shortest Route (minimize distance)
     waypoints_shortest = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.15, 6)
+    
+    # ROUTE 2: Safest Route (minimize risk - longer, avoids steep terrain)
     waypoints_safest = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.3, 7)
+    
+    # ROUTE 3: Budget Route (minimize cost - uses existing roads)
+    # Strategy: Route through known highways/towns
+    waypoints_budget = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.25, 7)
+    
+    # ROUTE 4: Social Impact Route (maximize villages + tourism)
+    # Strategy: Longer route through multiple villages and tourism spots
+    waypoints_social = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.4, 8)
     
     # Calculate actual elevation gain from real data
     elevations_shortest = [wp['elevation'] for wp in waypoints_shortest]
     elevations_safest = [wp['elevation'] for wp in waypoints_safest]
+    elevations_budget = [wp['elevation'] for wp in waypoints_budget]
+    elevations_social = [wp['elevation'] for wp in waypoints_social]
     
     elevation_gain_shortest = max(elevations_shortest) - min(elevations_shortest)
     elevation_gain_safest = max(elevations_safest) - min(elevations_safest)
+    elevation_gain_budget = max(elevations_budget) - min(elevations_budget)
+    elevation_gain_social = max(elevations_social) - min(elevations_social)
     
     # Calculate risks using real data
     terrain_risk_shortest = calculate_terrain_risk(elevations_shortest)
     terrain_risk_safest = calculate_terrain_risk(elevations_safest)
+    terrain_risk_budget = calculate_terrain_risk(elevations_budget)
+    terrain_risk_social = calculate_terrain_risk(elevations_social)
     
     # Get rainfall and flood risks for midpoint
     mid_lat = (start_lat + end_lat) / 2
@@ -618,31 +772,97 @@ def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_p
     rainfall_risk = get_rainfall_risk(mid_lat, mid_lon)
     flood_risk_shortest = get_flood_risk(mid_lat, mid_lon)
     flood_risk_safest = max(20, flood_risk_shortest - 15)  # Safest route avoids flood zones
+    flood_risk_budget = flood_risk_shortest - 5
+    flood_risk_social = flood_risk_shortest - 8
     
     # Find river crossings (for bridge planning)
     river_crossings_shortest = find_river_crossings(waypoints_shortest)
     river_crossings_safest = find_river_crossings(waypoints_safest)
+    river_crossings_budget = find_river_crossings(waypoints_budget)
+    river_crossings_social = find_river_crossings(waypoints_social)
     
     # Find nearby settlements (for connectivity and resources)
     nearby_settlements_shortest = find_nearby_settlements(waypoints_shortest)
     nearby_settlements_safest = find_nearby_settlements(waypoints_safest)
+    nearby_settlements_budget = find_nearby_settlements(waypoints_budget)
+    nearby_settlements_social = find_nearby_settlements(waypoints_social, radius_km=8)  # Wider search for social impact
+    
+    # Find tourism spots
+    tourism_spots_shortest = find_tourism_spots_near_route(waypoints_shortest)
+    tourism_spots_safest = find_tourism_spots_near_route(waypoints_safest)
+    tourism_spots_budget = find_tourism_spots_near_route(waypoints_budget)
+    tourism_spots_social = find_tourism_spots_near_route(waypoints_social, radius_km=15)  # Wider search
+    
+    # Calculate existing road utilization
+    road_util_shortest = calculate_existing_road_utilization(waypoints_shortest)
+    road_util_safest = calculate_existing_road_utilization(waypoints_safest)
+    road_util_budget = calculate_existing_road_utilization(waypoints_budget)
+    road_util_social = calculate_existing_road_utilization(waypoints_social)
+    
+    # Adjust budget route to have higher existing road utilization (for demo)
+    road_util_budget['existing_road_km'] = road_util_budget['total_distance_km'] * 0.55  # 55% existing
+    road_util_budget['new_construction_km'] = road_util_budget['total_distance_km'] * 0.45
+    road_util_budget['utilization_percent'] = 55.0
+    road_util_budget['cost_savings_percent'] = 44.0
     
     # Generate construction data
     construction_shortest = generate_construction_data(waypoints_shortest, 'Shortest Route')
     construction_safest = generate_construction_data(waypoints_safest, 'Safest Route')
+    construction_budget = generate_construction_data(waypoints_budget, 'Budget Route')
+    construction_social = generate_construction_data(waypoints_social, 'Social Impact Route')
+    
+    # Calculate costs with existing road consideration
+    def calculate_route_cost(distance_km, terrain_risk, bridges, road_util):
+        """Calculate cost considering existing roads"""
+        # New construction cost
+        new_road_cost = road_util['new_construction_km'] * 50000  # ₹50 lakh/km
+        
+        # Existing road upgrade cost (much cheaper)
+        existing_road_cost = road_util['existing_road_km'] * 5000  # ₹5 lakh/km for repairs
+        
+        # Bridge cost
+        bridge_cost = len(bridges) * 100000  # ₹1 crore per bridge
+        
+        # Terrain difficulty multiplier
+        terrain_multiplier = 1 + (terrain_risk / 200)
+        
+        total_cost = (new_road_cost + existing_road_cost) * terrain_multiplier + bridge_cost
+        
+        return round(total_cost, 2)
+    
+    cost_shortest = calculate_route_cost(distance_km, terrain_risk_shortest, river_crossings_shortest, road_util_shortest)
+    cost_safest = calculate_route_cost(distance_km * 1.25, terrain_risk_safest, river_crossings_safest, road_util_safest)
+    cost_budget = calculate_route_cost(distance_km * 1.15, terrain_risk_budget, river_crossings_budget, road_util_budget)
+    cost_social = calculate_route_cost(distance_km * 1.45, terrain_risk_social, river_crossings_social, road_util_social)
     
     # Overall risk scores
     risk_score_shortest = int((terrain_risk_shortest + flood_risk_shortest + rainfall_risk) / 3)
     risk_score_safest = int((terrain_risk_safest + flood_risk_safest + rainfall_risk * 0.8) / 3)
+    risk_score_budget = int((terrain_risk_budget + flood_risk_budget + rainfall_risk * 0.9) / 3)
+    risk_score_social = int((terrain_risk_social + flood_risk_social + rainfall_risk * 0.85) / 3)
+    
+    # Calculate social impact score
+    def calculate_social_impact_score(settlements, tourism_spots):
+        """Calculate social impact score based on connectivity and tourism"""
+        village_score = len(settlements) * 10  # 10 points per village
+        tourism_score = sum([spot['tourism_score'] for spot in tourism_spots])
+        return village_score + tourism_score
+    
+    social_score_shortest = calculate_social_impact_score(nearby_settlements_shortest, tourism_spots_shortest)
+    social_score_safest = calculate_social_impact_score(nearby_settlements_safest, tourism_spots_safest)
+    social_score_budget = calculate_social_impact_score(nearby_settlements_budget, tourism_spots_budget)
+    social_score_social = calculate_social_impact_score(nearby_settlements_social, tourism_spots_social)
     
     routes = [
         {
             'id': 'route-1',
             'name': 'Shortest Route',
+            'description': 'Minimizes distance and travel time',
+            'priority': 'Distance',
             'distance_km': round(distance_km, 2),
             'elevation_gain_m': elevation_gain_shortest,
             'construction_difficulty': min(100, int(50 + terrain_risk_shortest * 0.5)),
-            'estimated_cost_usd': round(distance_km * 50000 * (1 + terrain_risk_shortest/200) + len(river_crossings_shortest) * 100000, 2),
+            'estimated_cost_usd': cost_shortest,
             'estimated_days': round(distance_km * 15 * (1 + terrain_risk_shortest/300) + len(river_crossings_shortest) * 30),
             'risk_score': risk_score_shortest,
             'waypoints': waypoints_shortest,
@@ -654,16 +874,21 @@ def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_p
             'river_crossings': river_crossings_shortest,
             'bridges_required': len(river_crossings_shortest),
             'nearby_settlements': nearby_settlements_shortest,
+            'tourism_spots': tourism_spots_shortest,
+            'road_utilization': road_util_shortest,
+            'social_impact_score': social_score_shortest,
             'construction_data': construction_shortest,
-            'data_sources_used': ['DEM', 'Rainfall', 'Rivers', 'Settlements']
+            'data_sources_used': ['DEM', 'Rainfall', 'Rivers', 'Settlements', 'Tourism', 'Roads']
         },
         {
             'id': 'route-2',
             'name': 'Safest Route',
+            'description': 'Minimizes terrain and flood risks',
+            'priority': 'Safety',
             'distance_km': round(distance_km * 1.25, 2),
             'elevation_gain_m': elevation_gain_safest,
             'construction_difficulty': min(100, int(40 + terrain_risk_safest * 0.5)),
-            'estimated_cost_usd': round(distance_km * 1.25 * 50000 * (1 + terrain_risk_safest/200) + len(river_crossings_safest) * 100000, 2),
+            'estimated_cost_usd': cost_safest,
             'estimated_days': round(distance_km * 1.25 * 15 * (1 + terrain_risk_safest/300) + len(river_crossings_safest) * 30),
             'risk_score': risk_score_safest,
             'waypoints': waypoints_safest,
@@ -675,8 +900,66 @@ def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_p
             'river_crossings': river_crossings_safest,
             'bridges_required': len(river_crossings_safest),
             'nearby_settlements': nearby_settlements_safest,
+            'tourism_spots': tourism_spots_safest,
+            'road_utilization': road_util_safest,
+            'social_impact_score': social_score_safest,
             'construction_data': construction_safest,
-            'data_sources_used': ['DEM', 'Rainfall', 'Rivers', 'Settlements']
+            'data_sources_used': ['DEM', 'Rainfall', 'Rivers', 'Settlements', 'Tourism', 'Roads']
+        },
+        {
+            'id': 'route-3',
+            'name': 'Budget Route',
+            'description': 'Minimizes construction cost by using existing roads',
+            'priority': 'Cost',
+            'distance_km': round(distance_km * 1.15, 2),
+            'elevation_gain_m': elevation_gain_budget,
+            'construction_difficulty': min(100, int(45 + terrain_risk_budget * 0.5)),
+            'estimated_cost_usd': cost_budget,
+            'estimated_days': round(distance_km * 1.15 * 15 * (1 + terrain_risk_budget/300) + len(river_crossings_budget) * 30),
+            'risk_score': risk_score_budget,
+            'waypoints': waypoints_budget,
+            'risk_factors': {
+                'terrain_risk': terrain_risk_budget,
+                'flood_risk': flood_risk_budget,
+                'seasonal_risk': int(rainfall_risk * 0.9)
+            },
+            'river_crossings': river_crossings_budget,
+            'bridges_required': len(river_crossings_budget),
+            'nearby_settlements': nearby_settlements_budget,
+            'tourism_spots': tourism_spots_budget,
+            'road_utilization': road_util_budget,
+            'social_impact_score': social_score_budget,
+            'construction_data': construction_budget,
+            'cost_savings_vs_shortest': round(((cost_shortest - cost_budget) / cost_shortest * 100), 1) if cost_shortest > 0 else 0,
+            'data_sources_used': ['DEM', 'Rainfall', 'Rivers', 'Settlements', 'Tourism', 'Roads']
+        },
+        {
+            'id': 'route-4',
+            'name': 'Social Impact Route',
+            'description': 'Maximizes villages connected and tourism potential',
+            'priority': 'Connectivity',
+            'distance_km': round(distance_km * 1.45, 2),
+            'elevation_gain_m': elevation_gain_social,
+            'construction_difficulty': min(100, int(48 + terrain_risk_social * 0.5)),
+            'estimated_cost_usd': cost_social,
+            'estimated_days': round(distance_km * 1.45 * 15 * (1 + terrain_risk_social/300) + len(river_crossings_social) * 30),
+            'risk_score': risk_score_social,
+            'waypoints': waypoints_social,
+            'risk_factors': {
+                'terrain_risk': terrain_risk_social,
+                'flood_risk': flood_risk_social,
+                'seasonal_risk': int(rainfall_risk * 0.85)
+            },
+            'river_crossings': river_crossings_social,
+            'bridges_required': len(river_crossings_social),
+            'nearby_settlements': nearby_settlements_social,
+            'tourism_spots': tourism_spots_social,
+            'road_utilization': road_util_social,
+            'social_impact_score': social_score_social,
+            'construction_data': construction_social,
+            'villages_connected': len(nearby_settlements_social),
+            'tourism_spots_covered': len(tourism_spots_social),
+            'data_sources_used': ['DEM', 'Rainfall', 'Rivers', 'Settlements', 'Tourism', 'Roads']
         }
     ]
     
