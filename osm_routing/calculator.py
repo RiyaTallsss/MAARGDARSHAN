@@ -495,6 +495,20 @@ class RouteCalculator:
                                        wp['lon'] != unique_waypoints[-1]['lon']):
                 unique_waypoints.append(wp)
         
+        # BUGFIX: Downsample waypoints to reasonable number (20-30 max for jungle routes)
+        # Keep start, end, and evenly spaced intermediate points
+        if len(unique_waypoints) > 25:
+            logger.info(f"Downsampling waypoints from {len(unique_waypoints)} to 25")
+            step = len(unique_waypoints) // 24  # Keep 25 points total
+            downsampled = [unique_waypoints[0]]  # Always keep start
+            for i in range(1, 24):
+                idx = i * step
+                if idx < len(unique_waypoints):
+                    downsampled.append(unique_waypoints[idx])
+            downsampled.append(unique_waypoints[-1])  # Always keep end
+            unique_waypoints = downsampled
+            logger.info(f"Downsampled to {len(unique_waypoints)} waypoints")
+        
         route = Route(
             id=route_id,
             name=name,

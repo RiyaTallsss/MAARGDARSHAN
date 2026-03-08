@@ -1,1 +1,0 @@
-"""Configuration management for the rural infrastructure planning system."""

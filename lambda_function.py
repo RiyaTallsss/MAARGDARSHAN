@@ -1097,23 +1097,28 @@ def generate_routes_with_osm(start_lat, start_lon, end_lat, end_lon):
     
     logger.info(f"Response size: {response_size_mb:.2f} MB")
     
-    # If approaching 6MB limit, downsample waypoints
-    if response_size_mb > 5.0:
-        logger.warning(f"Response size {response_size_mb:.2f} MB exceeds threshold, downsampling waypoints")
+    # BUGFIX: Always limit waypoints to reasonable number (20-30 max)
+    # Jungle routes don't need 100+ waypoints
+    for route_data in response['routes']:
+        waypoints = route_data['waypoints']
         
-        for route_data in response['routes']:
-            waypoints = route_data['waypoints']
-            
-            # Keep every Nth waypoint to reduce size
-            if len(waypoints) > 100:
-                step = len(waypoints) // 100
-                route_data['waypoints'] = waypoints[::step]
-                logger.info(f"Downsampled {route.id} from {len(waypoints)} to {len(route_data['waypoints'])} waypoints")
-        
-        # Recalculate size
-        response_json = json.dumps(response)
-        response_size_mb = len(response_json.encode('utf-8')) / (1024 * 1024)
-        logger.info(f"Downsampled response size: {response_size_mb:.2f} MB")
+        # Limit to 25 waypoints max for all routes
+        if len(waypoints) > 25:
+            logger.info(f"Limiting {route_data['name']} waypoints from {len(waypoints)} to 25")
+            step = len(waypoints) // 24
+            limited = [waypoints[0]]  # Keep start
+            for i in range(1, 24):
+                idx = i * step
+                if idx < len(waypoints):
+                    limited.append(waypoints[idx])
+            limited.append(waypoints[-1])  # Keep end
+            route_data['waypoints'] = limited
+            logger.info(f"Limited to {len(route_data['waypoints'])} waypoints")
+    
+    # Recalculate size after limiting
+    response_json = json.dumps(response)
+    response_size_mb = len(response_json.encode('utf-8')) / (1024 * 1024)
+    logger.info(f"Final response size: {response_size_mb:.2f} MB")
     
     logger.info(f"Generated {len(enriched_routes)} OSM routes")
     return response
@@ -1154,8 +1159,8 @@ def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_p
         """Generate waypoints with actual elevations from DEM - follows terrain more naturally"""
         waypoints = []
         
-        # Add more intermediate points for realistic curves
-        actual_points = num_points * 3  # Triple the points for smoother curves
+        # BUGFIX: Reduced from 3x to 2x for fewer waypoints in jungle routes
+        actual_points = num_points * 2  # Double the points for smoother curves
         
         for i in range(actual_points):
             t = i / (actual_points - 1)
@@ -1195,10 +1200,10 @@ def generate_routes_with_real_data(start_lat, start_lon, end_lat, end_lon, via_p
         return waypoints
     
     # ROUTE 1: Shortest Route (minimize distance)
-    waypoints_shortest = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.08, 8, 'shortest')
+    waypoints_shortest = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.08, 6, 'shortest')
     
     # ROUTE 2: Safest Route (minimize risk - multiple gentle curves to avoid steep terrain)
-    waypoints_safest = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.12, 10, 'safest')
+    waypoints_safest = generate_route_with_real_elevations(start_lat, start_lon, end_lat, end_lon, 0.12, 8, 'safest')
     
     # Calculate actual elevation gain from real data
     elevations_shortest = [wp['elevation'] for wp in waypoints_shortest]
