@@ -1,0 +1,17 @@
+FROM --platform=linux/amd64 public.ecr.aws/lambda/python:3.11
+
+# Install build dependencies for pyosmium
+RUN yum install -y gcc-c++ cmake boost-devel expat-devel zlib-devel bzip2-devel
+
+# Copy requirements
+COPY requirements-lambda.txt .
+
+# Install Python dependencies
+RUN pip install -r requirements-lambda.txt -t /asset --no-cache-dir
+
+# Create Lambda layer structure
+RUN mkdir -p /layer/python
+RUN cp -r /asset/* /layer/python/
+
+# Set working directory
+WORKDIR /layer

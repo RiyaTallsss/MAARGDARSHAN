@@ -253,31 +253,31 @@ function displayRoutes(routes) {
                 <div class="risk-item">
                     <div class="risk-label">
                         <span>Terrain Risk</span>
-                        <span>${route.risk_factors.terrain_risk}/100</span>
+                        <span>${(route.risk_scores?.terrain || route.risk_factors?.terrain_risk || 50)}/100</span>
                     </div>
                     <div class="risk-bar">
-                        <div class="risk-fill ${getRiskClass(route.risk_factors.terrain_risk)}" 
-                             style="width: ${route.risk_factors.terrain_risk}%"></div>
+                        <div class="risk-fill ${getRiskClass(route.risk_scores?.terrain || route.risk_factors?.terrain_risk || 50)}"
+                             style="width: ${route.risk_scores?.terrain || route.risk_factors?.terrain_risk || 50}%"></div>
                     </div>
                 </div>
                 <div class="risk-item">
                     <div class="risk-label">
                         <span>Flood Risk</span>
-                        <span>${route.risk_factors.flood_risk}/100</span>
+                        <span>${(route.risk_scores?.flood || route.risk_factors?.flood_risk || 50)}/100</span>
                     </div>
                     <div class="risk-bar">
-                        <div class="risk-fill ${getRiskClass(route.risk_factors.flood_risk)}" 
-                             style="width: ${route.risk_factors.flood_risk}%"></div>
+                        <div class="risk-fill ${getRiskClass(route.risk_scores?.flood || route.risk_factors?.flood_risk || 50)}"
+                             style="width: ${route.risk_scores?.flood || route.risk_factors?.flood_risk || 50}%"></div>
                     </div>
                 </div>
                 <div class="risk-item">
                     <div class="risk-label">
                         <span>Seasonal Risk</span>
-                        <span>${route.risk_factors.seasonal_risk}/100</span>
+                        <span>${(route.risk_scores?.rainfall || route.risk_factors?.seasonal_risk || 50)}/100</span>
                     </div>
                     <div class="risk-bar">
-                        <div class="risk-fill ${getRiskClass(route.risk_factors.seasonal_risk)}" 
-                             style="width: ${route.risk_factors.seasonal_risk}%"></div>
+                        <div class="risk-fill ${getRiskClass(route.risk_scores?.rainfall || route.risk_factors?.seasonal_risk || 50)}"
+                             style="width: ${route.risk_scores?.rainfall || route.risk_factors?.seasonal_risk || 50}%"></div>
                     </div>
                 </div>
             </div>
@@ -412,56 +412,225 @@ function formatVolume(volume) {
     return volume.toFixed(0) + ' m³';
 }
 
-// Download format handler
+// View/Download format handler
 function downloadFormat(routeIndex, format) {
     const route = state.routes[routeIndex];
-    if (!route || !route.construction_data || !route.construction_data.downloadable_formats) {
-        alert('Download data not available');
+    if (!route || !route.waypoints) {
+        alert('Route data not available');
         return;
     }
     
-    const content = route.construction_data.downloadable_formats[format];
-    if (!content) {
-        alert(`${format.toUpperCase()} format not available`);
+    // Generate the file content client-side
+    let content;
+    let mimeType;
+    let filename;
+    
+    if (format === 'kml') {
+        content = generateKML(route);
+        mimeType = 'application/vnd.google-earth.kml+xml';
+        filename = `${route.name.replace(/\s+/g, '_')}_route.kml`;
+    } else if (format === 'gpx') {
+        content = generateGPX(route);
+        mimeType = 'application/gpx+xml';
+        filename = `${route.name.replace(/\s+/g, '_')}_route.gpx`;
+    } else if (format === 'geojson') {
+        content = generateGeoJSON(route);
+        mimeType = 'application/json';
+        filename = `${route.name.replace(/\s+/g, '_')}_route.geojson`;
+    } else {
+        alert(`${format.toUpperCase()} format not supported`);
         return;
     }
     
-    const blob = new Blob([content], { 
-        type: format === 'geojson' ? 'application/json' : 'application/xml' 
-    });
+    // Create blob and trigger download with proper filename
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${route.name.replace(/\s+/g, '_')}_route.${format === 'geojson' ? 'json' : format}`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
     
-    console.log(`Downloaded ${format.toUpperCase()} for ${route.name}`);
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    
+    console.log(`Downloaded ${filename}`);
 }
 
-// Sample coordinates (press 'D')
-function addSampleCoordinates() {
-    state.startPoint = { lat: 30.7268, lon: 78.4354 };
-    state.endPoint = { lat: 30.9993, lon: 78.9394 };
+// Simplify waypoints using Ramer-Douglas-Peucker algorithm
+function simplifyWaypoints(waypoints, tolerance = 0.001) {
+    if (waypoints.length <= 2) return waypoints;
     
-    if (state.markers.start) map.removeLayer(state.markers.start);
-    if (state.markers.end) map.removeLayer(state.markers.end);
+    // Find the point with maximum distance from line segment
+    let maxDist = 0;
+    let maxIndex = 0;
+    const start = waypoints[0];
+    const end = waypoints[waypoints.length - 1];
     
-    state.markers.start = L.marker([30.7268, 78.4354], { icon: startIcon }).addTo(map);
-    state.markers.end = L.marker([30.9993, 78.9394], { icon: endIcon }).addTo(map);
+    for (let i = 1; i < waypoints.length - 1; i++) {
+        const dist = perpendicularDistance(waypoints[i], start, end);
+        if (dist > maxDist) {
+            maxDist = dist;
+            maxIndex = i;
+        }
+    }
     
-    document.getElementById('start-coord').textContent = '30.7268, 78.4354';
-    document.getElementById('end-coord').textContent = '30.9993, 78.9394';
-    document.getElementById('generate-btn').disabled = false;
-    
-    map.fitBounds([[30.7268, 78.4354], [30.9993, 78.9394]]);
+    // If max distance is greater than tolerance, recursively simplify
+    if (maxDist > tolerance) {
+        const left = simplifyWaypoints(waypoints.slice(0, maxIndex + 1), tolerance);
+        const right = simplifyWaypoints(waypoints.slice(maxIndex), tolerance);
+        return left.slice(0, -1).concat(right);
+    } else {
+        return [start, end];
+    }
 }
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'd' || e.key === 'D') addSampleCoordinates();
-});
+// Calculate perpendicular distance from point to line
+function perpendicularDistance(point, lineStart, lineEnd) {
+    const dx = lineEnd.lon - lineStart.lon;
+    const dy = lineEnd.lat - lineStart.lat;
+    
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    if (mag === 0) return Math.sqrt(Math.pow(point.lon - lineStart.lon, 2) + Math.pow(point.lat - lineStart.lat, 2));
+    
+    const u = ((point.lon - lineStart.lon) * dx + (point.lat - lineStart.lat) * dy) / (mag * mag);
+    
+    let closestPoint;
+    if (u < 0) {
+        closestPoint = lineStart;
+    } else if (u > 1) {
+        closestPoint = lineEnd;
+    } else {
+        closestPoint = {
+            lon: lineStart.lon + u * dx,
+            lat: lineStart.lat + u * dy
+        };
+    }
+    
+    return Math.sqrt(Math.pow(point.lon - closestPoint.lon, 2) + Math.pow(point.lat - closestPoint.lat, 2));
+}
+// Generate KML format
+function generateKML(route) {
+    const waypoints = route.waypoints || [];
+    const name = route.name || 'Route';
+    const description = route.description || '';
+    
+    let kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${name}</name>
+    <description>${description}</description>
+    <Style id="routeStyle">
+      <LineStyle>
+        <color>ff0000ff</color>
+        <width>4</width>
+      </LineStyle>
+    </Style>
+    <Placemark>
+      <name>${name}</name>
+      <description>Distance: ${route.distance_km || route.total_distance_km || 0} km</description>
+      <styleUrl>#routeStyle</styleUrl>
+      <LineString>
+        <coordinates>
+`;
+    
+    waypoints.forEach(wp => {
+        kml += `          ${wp.lon},${wp.lat},${wp.elevation || 0}\n`;
+    });
+    
+    kml += `        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>`;
+    
+    return kml;
+}
 
-console.log('🗺️ MAARGDARSHAN v2.0 loaded!');
-console.log('💡 Press "D" for demo coordinates');
+// Generate GPX format
+function generateGPX(route) {
+    const waypoints = route.waypoints || [];
+    const name = route.name || 'Route';
+    
+    let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MAARGDARSHAN" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>${name}</name>
+    <desc>Distance: ${route.distance_km || route.total_distance_km || 0} km</desc>
+  </metadata>
+  <trk>
+    <name>${name}</name>
+    <trkseg>
+`;
+    
+    waypoints.forEach(wp => {
+        gpx += `      <trkpt lat="${wp.lat}" lon="${wp.lon}">
+        <ele>${wp.elevation || 0}</ele>
+      </trkpt>
+`;
+    });
+    
+    gpx += `    </trkseg>
+  </trk>
+</gpx>`;
+    
+    return gpx;
+}
+
+// Generate GeoJSON format
+function generateGeoJSON(route) {
+    const waypoints = route.waypoints || [];
+    
+    const geojson = {
+        type: "FeatureCollection",
+        features: [
+            {
+                type: "Feature",
+                properties: {
+                    name: route.name || 'Route',
+                    description: route.description || '',
+                    distance_km: route.distance_km || route.total_distance_km || 0,
+                    elevation_gain_m: route.elevation_gain_m || 0,
+                    estimated_cost: route.estimated_cost_usd || route.estimated_cost || 0,
+                    risk_score: route.risk_score || 0
+                },
+                geometry: {
+                    type: "LineString",
+                    coordinates: waypoints.map(wp => [wp.lon, wp.lat, wp.elevation || 0])
+                }
+            }
+        ]
+    };
+    
+    return JSON.stringify(geojson, null, 2);
+}
+
+// Open route in Google Earth Web
+function viewInGoogleEarth(routeIndex) {
+    const route = state.routes[routeIndex];
+    if (!route || !route.waypoints) {
+        alert('Route data not available');
+        return;
+    }
+    
+    // Download KML first
+    downloadFormat(routeIndex, 'kml');
+    
+    // Wait a moment then open Google Earth Web with instructions
+    setTimeout(() => {
+        const instructions = `Google Earth Web opened in new tab!
+
+To view your route:
+1. Your KML file is downloading
+2. In Google Earth Web, click the menu icon (☰) on the left
+3. Click "Projects" → "Import KML file from computer"
+4. Select the downloaded KML file
+5. Your route will appear on the 3D globe!
+
+Tip: Use the tilt and rotate controls to see the terrain in 3D.`;
+        
+        alert(instructions);
+        window.open('https://earth.google.com/web/', '_blank');
+    }, 500);
+}

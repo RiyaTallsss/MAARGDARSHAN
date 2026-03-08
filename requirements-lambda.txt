@@ -1,2 +1,11 @@
 # Requirements for Lambda deployment with real data processing
 boto3>=1.34.0
+
+# OSM Road Network Routing dependencies
+osmium>=3.6.0
+networkx>=3.2.1
+# Use pre-built wheels that don't require compilation
+--only-binary=:all:
+scikit-learn==1.3.2
+numpy==1.24.4
+scipy==1.11.4

@@ -93,6 +93,10 @@ mkdir -p lambda-package
 # Copy Lambda function
 cp lambda_function.py lambda-package/
 
+# Copy OSM routing module
+echo "Copying OSM routing module..."
+cp -r osm_routing lambda-package/
+
 # Install dependencies (boto3 is included in Lambda runtime, but we'll add it anyway)
 echo "Installing dependencies..."
 pip install -r requirements-lambda.txt -t lambda-package/ --quiet
@@ -107,7 +111,20 @@ echo -e "${GREEN}✓ Deployment package created: lambda-deployment.zip${NC}"
 echo "   Size: $(du -h lambda-deployment.zip | cut -f1)"
 
 echo ""
-echo "Step 3: Deploying Lambda Function"
+echo "Step 3: Uploading to S3"
+echo "--------------------------------------"
+
+# Upload to S3
+S3_BUCKET="maargdarshan-data"
+S3_KEY="lambda/lambda-deployment.zip"
+
+echo "Uploading deployment package to S3..."
+aws s3 cp lambda-deployment.zip s3://$S3_BUCKET/$S3_KEY
+
+echo -e "${GREEN}✓ Uploaded to s3://$S3_BUCKET/$S3_KEY${NC}"
+
+echo ""
+echo "Step 4: Deploying Lambda Function"
 echo "--------------------------------------"
 
 # Check if function exists
@@ -115,7 +132,8 @@ if aws lambda get-function --function-name $FUNCTION_NAME --region $REGION 2>/de
     echo "Updating existing function..."
     aws lambda update-function-code \
         --function-name $FUNCTION_NAME \
-        --zip-file fileb://lambda-deployment.zip \
+        --s3-bucket $S3_BUCKET \
+        --s3-key $S3_KEY \
         --region $REGION \
         --no-cli-pager
     
@@ -136,7 +154,7 @@ else
         --runtime $RUNTIME \
         --role $ROLE_ARN \
         --handler $HANDLER \
-        --zip-file fileb://lambda-deployment.zip \
+        --code S3Bucket=$S3_BUCKET,S3Key=$S3_KEY \
         --timeout $TIMEOUT \
         --memory-size $MEMORY \
         --environment "Variables={S3_BUCKET=maargdarshan-data,BEDROCK_MODEL=anthropic.claude-3-haiku-20240307-v1:0}" \
@@ -147,7 +165,7 @@ else
 fi
 
 echo ""
-echo "Step 4: Creating API Gateway"
+echo "Step 5: Creating API Gateway"
 echo "--------------------------------------"
 
 # Create REST API
